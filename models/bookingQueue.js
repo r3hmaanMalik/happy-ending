@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const queueSchema = {
     serviceID : mongoose.Schema.Types.ObjectId,
     clientID : mongoose.Schema.Types.ObjectId,
+    attendantID : mongoose.Schema.Types.ObjectId,
     accepted : Boolean
 }
 

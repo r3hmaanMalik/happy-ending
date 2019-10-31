@@ -1,6 +1,7 @@
 const Service = require('../models/Service');
 const Admin = require('../models/Admin');
-const Withdraw = require('../models/withdrawl');
+const Attendant = require('../models/Attendant');
+const Withdraw = require('../models/Withdrawl');
 
 var bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
@@ -32,16 +33,49 @@ app.get("/services", async (request, response) => {
     }
 });
 
-app.post("/deleteservice", async (request, response) => {
-    try {
-        var id = request.body.id;
-        var service = await Service.findById(id);
-        var result = await service.deleteOne();
-        response.send(result);
-    } catch (error) {
-        response.status(500).send(error);
-    }
-});
+// app.post("/deleteservice", async (request, response) => {
+//     try{
+//         var serv = [];
+//         var id = request.body.id;
+//         // console.log(id);
+//         var find = await Attendant.findOne({'s_id': id}).exec();
+//         // console.log(find.services);
+//         if(find){
+//         find.services.forEach(async element => {
+//             if(element._id != "5db03475716c0c13a8869585"){
+//                 serv.push(element);
+//             }
+//         });
+//         newvalues = { 
+//             $set: {
+//                 services: serv
+//             } 
+//         };
+//         find.updateOne(
+//             id,
+//             newvalues,
+//             {new: true},
+//             (err, val) => {
+//                 if (err) return res.status(500).send(err);
+//                         var service = Service.findById(id);
+//                         var result = service.deleteOne();
+//                     response.json({
+//                         response: "Your service has been deleted"
+//                     });
+//             });
+//         }
+//         else{
+//             // var service = Service.findById(id);
+//             // var result = service.deleteOne();
+//             response.json({
+//                 response: "Else: Your service has been deleted"
+//             });
+//         }
+//         // response.send(find);
+//     }catch(error){
+//         response.status(500).send(error);
+//     }
+// });
 
 
 
@@ -59,9 +93,37 @@ app.post("/add", async (request, response) => {
 
 app.post("/withdraw", async (request, response) => {
     try {
-        var withdraw = new Withdraw(request.body);
-        var result = await withdraw.save();
-        response.send(result);
+        var attendentId = request.body.attendantID;
+        var withdrawAmount = request.body.withDrawl;
+
+        var find = await Attendant.findOne({'_id': attendentId}).exec();
+        var maxBalance = find.balance;
+        if(maxBalance >= withdrawAmount){
+            var remainingBalance = maxBalance - withdrawAmount;
+            newvalues = { 
+                $set: {
+                    balance: remainingBalance
+                } 
+            };
+            Attendant.findByIdAndUpdate(
+                attendentId,
+                newvalues,
+                {new: true},
+                (err, val) => {
+                    if (err) return res.status(500).send(err);
+                        var withdraw = new Withdraw(request.body);
+                        var resultVal = withdraw.save();
+                        // response.send(resultVal);
+                        response.json({
+                            response: "Your withdrawls amount is = "+withdrawAmount
+                        });
+                });
+        }
+        else{
+            response.json({
+                response: "Your balance is not enough for withdrawls"
+            });
+        }
     } catch (error) {
         response.status(500).send(error);
     }
