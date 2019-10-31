@@ -1,9 +1,13 @@
 const express = require('express');
 const app = express.Router();
-const Client = require('../models/client');
+const Client = require('../models/Client');
 const jwt = require('jsonwebtoken');
-const BookingQueue = require('../models/bookingQueue');
-const Appointment = require('../models/appointment');
+var bcrypt = require("bcrypt");
+const bookingQueue = require('../models/BookingQueue');
+const Appointment = require('../models/Appointment');
+const Attendant = require('../models/Attendant');
+const Service = require('../models/Service');
+
 
 //SignUp
 app.post('/signup' , async(req , res) => {
@@ -12,30 +16,31 @@ app.post('/signup' , async(req , res) => {
         if (client) return res.status(400).send('User already registered.');
         console.log(req.body);
         client = new Client(req.body);
-        var result =await client.save();
+        var result = await client.save();
         res.send(result);
-    } catch (error) {
+    }catch(error){
         res.status(500).send("Internal Server Error");
     }
-    
 });
 
 
 //Login
-app.post('/login' , async(req , res) => {
+app.post('/login' , async(request , response) => {
     try {
         var find = await Client.findOne({
             'email': request.body.email
         }).exec();
-        if (find) {
-            bcrypt.compare(request.body.password, find.password, function (err, isMatch) {
+        // console.log(find);
+        if(find){
+            bcrypt.compare(request.body.password, find.password, function (err, isMatch){
                 if (err) return err;
-                if (isMatch) {
+                console.log(isMatch);
+                if(isMatch){
                     console.log(isMatch);
                     const token = jwt.sign({
                         find
                     }, 'my_secret_key');
-                    if (err) {
+                    if (err){
                         throw err;
                     }
                     response.json({
@@ -44,13 +49,13 @@ app.post('/login' , async(req , res) => {
                         email: find.email,
                         token: token
                     })
-                } else {
+                }else{
                     response.json({
                         response: "Wrong Password"
                     });
                 }
             });
-        } else {
+        }else{
             response.json({
                 response: "Email not exist"
             });
@@ -60,17 +65,26 @@ app.post('/login' , async(req , res) => {
     }
 });
 
+//Get all services
+app.get("/services", async (req, res) => {
+    try {
+        var result = await Service.find().exec();
+        res.send(result);
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
 
 //Booking Appointment
 app.post('/booking', async(req,res) => {
     try {
-        queue = new BookingQueue(req.body);
+        queue = new bookingQueue(req.body);
         var result = await queue.save();
         res.send(result);
     } catch (error) {
         res.status(500).send("Internal Server Error");
     }
-    
 });
 
 //My Appointments History
@@ -81,6 +95,36 @@ app.post('/myhistory' , async(req,res) => {
     } catch (error) {
         res.status(500).send("Internal Server Error");
     }
+});
+
+//Rate on appointment
+app.post('/rateattendant', async(req,res) => {
+    try {
+        id = req.body.rateId;
+        rating = req.body.rating;
+        var result = await Attendant.findById(id).exec();
+        if(result){
+            var oldRating = result.rating;
+            var rating = (oldRating + rating) / 2;
+            var newVal = rating.toFixed(1);
+            newvalues = { 
+                $set: {
+                    rating: newVal
+                } 
+            };
+            Attendant.findByIdAndUpdate(
+                id,
+                newvalues,
+                {new: true},
+                (err, val) => {
+                    if (err) return res.status(500).send(err);
+                        res.send(val);
+                });
+        }    
+    } catch (error) {
+        res.status(500).send("Internal Server Error");
+    }
+    
 });
 
 

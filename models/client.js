@@ -34,7 +34,7 @@ clientSchema.pre('save', function (next) {
         bcrypt.hash(client.password, salt, function (err, hash) {
             if (err) return next(err);
             client.password = hash;
-            console.log(client.password);
+            // console.log(client.password);
             next();
         });
     });
